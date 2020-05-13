@@ -1,0 +1,22 @@
+---
+title: "trash-policy"
+author: "邱奕勳"
+date: "2020/5/14"
+output: html_document
+---
+
+```{r}
+library(readr);library(lubridate);library(dplyr);library(stringr)
+```
+
+```{r}
+trashdata <- read_csv("trash.csv")
+
+colnames(trashdata) <-c('統計期','統計區','總產生量','一般垃圾量','巨大垃圾量','資源垃圾量','廚餘量','平均每人每日一般廢棄物產生量')
+
+#處理民國年月
+trashdata$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> trashdata$統計期
+str_c("1",trashdata$統計期) -> trashdata$統計期
+ymd(trashdata$統計期)+years(911) ->trashdata$統計期
+```
+
