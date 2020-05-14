@@ -28,13 +28,9 @@ str_split(NewTP$統計期, "-") -> NewTPYearMonth
 
 for (i in 1:length(NewTPYearMonth)){
   as.integer(NewTPYearMonth[[i]][[1]])+1911 -> NewTPYearMonth[[i]][[1]]
-  
-  if (length(NewTPYearMonth[[i]])==2){
-    paste0(NewTPYearMonth[[i]][[1]],"-",NewTPYearMonth[[i]][[2]]) -> NewTPYearMonth[[i]]
-  }else if(length(NewTPYearMonth[[i]])==3){
-    paste0(NewTPYearMonth[[i]][[1]],"-",NewTPYearMonth[[i]][[2]],"-",NewTPYearMonth[[i]][[3]]) -> NewTPYearMonth[[i]]
-  }
+  str_c(NewTPYearMonth[[i]], collapse = "-") -> NewTPYearMonth[[i]] 
 }
+
 
 NewTP$統計期 <- NewTPYearMonth %>% ymd()
 ```
@@ -44,14 +40,8 @@ str_split(Taoyuan$統計期, "-") -> TaoyuanYearMonth
 
 for (i in 1:length(TaoyuanYearMonth)){
   as.integer(TaoyuanYearMonth[[i]][[1]])+1911 -> TaoyuanYearMonth[[i]][[1]]
-  
-  if (length(TaoyuanYearMonth[[i]])==2){
-    paste0(TaoyuanYearMonth[[i]][[1]],"-",TaoyuanYearMonth[[i]][[2]]) -> TaoyuanYearMonth[[i]]
-  }else if(length(TaoyuanYearMonth[[i]])==3){
-    paste0(TaoyuanYearMonth[[i]][[1]],"-",TaoyuanYearMonth[[i]][[2]],"-",TaoyuanYearMonth[[i]][[3]]) -> TaoyuanYearMonth[[i]]
-  }
+  str_c(TaoyuanYearMonth[[i]], collapse = "-") -> TaoyuanYearMonth[[i]] 
 }
-
 Taoyuan$統計期 <- TaoyuanYearMonth %>% ymd()
 ```
 
@@ -61,12 +51,7 @@ str_split(Taipei$統計期, "-") -> TaipeiYearMonth
 
 for (i in 1:length(TaipeiYearMonth)){
   as.integer(TaipeiYearMonth[[i]][[1]])+1911 -> TaipeiYearMonth[[i]][[1]]
-  
-  if (length(TaipeiYearMonth[[i]])==2){
-    paste0(TaipeiYearMonth[[i]][[1]],"-",TaipeiYearMonth[[i]][[2]]) -> TaipeiYearMonth[[i]]
-  }else if(length(TaipeiYearMonth[[i]])==3){
-    paste0(TaipeiYearMonth[[i]][[1]],"-",TaipeiYearMonth[[i]][[2]],"-",TaipeiYearMonth[[i]][[3]]) -> TaipeiYearMonth[[i]]
-  }
+  str_c(TaipeiYearMonth[[i]], collapse = "-") -> TaipeiYearMonth[[i]] 
 }
 
 Taipei$統計期 <- TaipeiYearMonth %>% ymd()
