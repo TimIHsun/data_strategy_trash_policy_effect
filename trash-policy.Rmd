@@ -14,16 +14,11 @@ theme_set(theme_classic())
 knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.showtext=T)
 ```
 
-#資料
+#資料處理
 ```{r}
-trash <- read_csv("trash.csv", col_types = cols(序號 = col_skip()))
-NewTP <- read_csv("NewTP.csv", col_types = cols(序號 = col_skip()))
-Taoyuan <- read_csv("Taoyuan.csv", col_types = cols(序號 = col_skip()))
-Taipei <- read_csv("Taipei.csv", col_types = cols(序號 = col_skip()))
-```
+trash <- read_csv("trash.csv", col_types = cols(序號 = col_skip()), )
 
 #處理時間
-```{r}
 trash$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> trash$統計期
 str_split(trash$統計期, "-") -> trashYearMonth
 
@@ -33,59 +28,57 @@ for (i in 1:length(trashYearMonth)){
 }
 
 trash$統計期 <- trashYearMonth %>% ymd()
-```
-##新北
-```{r}
-NewTP$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> NewTP$統計期
-str_split(NewTP$統計期, "-") -> NewTPYearMonth
 
-for (i in 1:length(NewTPYearMonth)){
-  as.integer(NewTPYearMonth[[i]][[1]])+1911 -> NewTPYearMonth[[i]][[1]]
-  str_c(NewTPYearMonth[[i]], collapse = "-") -> NewTPYearMonth[[i]] 
-}
+#清除na, na為年資料
+trash %>% na.omit() ->trash
+trash[order(trash$統計期),] -> trash
 
-
-NewTP$統計期 <- NewTPYearMonth %>% ymd()
+trash %>% mutate(ratio = trash$`一般垃圾 (公噸)`/trash$`資源垃圾 (公噸)`) -> trash
 ```
 
-##桃園
 ```{r}
-Taoyuan$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> Taoyuan$統計期
-str_split(Taoyuan$統計期, "-") -> TaoyuanYearMonth
+newTP <- trash %>% filter(trash$統計區 == "新北市") 
+#按照日期排序
 
-for (i in 1:length(TaoyuanYearMonth)){
-  as.integer(TaoyuanYearMonth[[i]][[1]])+1911 -> TaoyuanYearMonth[[i]][[1]]
-  str_c(TaoyuanYearMonth[[i]], collapse = "-") -> TaoyuanYearMonth[[i]] 
-}
-Taoyuan$統計期 <- TaoyuanYearMonth %>% ymd()
-```
-##台北
-```{r}
-Taipei$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> Taipei$統計期
-str_split(Taipei$統計期, "-") -> TaipeiYearMonth
+Taoyuan <- trash %>% filter(trash$統計區 == "桃園市")
 
-for (i in 1:length(TaipeiYearMonth)){
-  as.integer(TaipeiYearMonth[[i]][[1]])+1911 -> TaipeiYearMonth[[i]][[1]]
-  str_c(TaipeiYearMonth[[i]], collapse = "-") -> TaipeiYearMonth[[i]] 
-}
+Taipei <- trash %>% filter(trash$統計區 == "臺北市")
 
-Taipei$統計期 <- TaipeiYearMonth %>% ymd()
-```
-
-##基隆
-```{r}
+Keelung <- trash %>% filter(trash$統計區 == "基隆市")
 
 ```
 
-確認distribution一致
-```{r}
-Taoyuan %>% ggplot() + 
-  geom_line(aes(x= Taoyuan$統計期, y= Taoyuan$`平均每人每日一般廢棄物產生量 (公斤)`))+
-  geom_line(
-    data = NewTP ,
-    aes(x= NewTP$統計期, y= NewTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red"
-            )+
-  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")
 
+
+#確認distribution一致
+
+##平均每人每日
+```{r}
+ggplot(data = Taoyuan,aes(x= Taoyuan$統計期, y= Taoyuan$`平均每人每日一般廢棄物產生量 (公斤)`)) +
+  geom_line()+
+  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
+  geom_smooth()+
+  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))
+```
+
+##一般垃圾
+```{r}
+ggplot(data = Taoyuan,aes(x= Taoyuan$統計期, y= Taoyuan$`一般垃圾 (公噸)`)) +
+  geom_line()+
+  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="一般垃圾")+
+  geom_smooth()+
+  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`), color = "red")+
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`))
+```
+
+
+```{r}
+ggplot(data = Taipei,aes(x= Taipei$統計期, y= Taipei$`一般垃圾 (公噸)`)) +
+  geom_line()+
+  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="一般垃圾")+
+  geom_smooth()+
+  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`), color = "red")+
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`))
 ```
 
