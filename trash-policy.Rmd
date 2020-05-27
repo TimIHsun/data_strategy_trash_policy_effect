@@ -46,8 +46,41 @@ Taipei <- trash %>% filter(trash$統計區 == "臺北市")
 
 Keelung <- trash %>% filter(trash$統計區 == "基隆市")
 
+TaichungO <- trash %>% filter(trash$統計區 == "臺中市(舊)")
+
+Taichung <- trash %>% filter(trash$統計區 == "臺中市")
+
+TainanO <- trash %>% filter(trash$統計區 == "臺南市(舊)")
+
+Tainan <- trash %>% filter(trash$統計區 == "臺南市")
 ```
 
+
+```{r}
+trash %>% filter(trash$統計期<ymd("2010-12-01")) ->trashBefore
+
+
+unique(trashBefore$統計區)[c(2:4,6:7,9:10,12:28)] -> city
+
+list(c(1:length(city)))-> SD
+names(SD[[1]]) <- city
+
+for (i in city){
+  trashBefore %>% filter(trashBefore$統計區==i) -> control
+  sd(control$`平均每人每日一般廢棄物產生量 (公斤)`- newTP$`平均每人每日一般廢棄物產生量 (公斤)`)->SD[[1]][[i]]
+  
+}
+
+
+SD[[1]] %>% which.min()
+rbind(SD[[1]], rank(SD[[1]])) %>% as.data.frame()-> perdayperpersonSD
+rownames(perdayperpersonSD) <- c("新北市","排序")
+
+control$`平均每人每日一般廢棄物產生量 (公斤)`- newTP$`平均每人每日一般廢棄物產生量 (公斤)`->a
+
+plot(x=c(1:length(a)),y=a)
+length(control)
+```
 
 
 #確認distribution一致
@@ -55,6 +88,15 @@ Keelung <- trash %>% filter(trash$統計區 == "基隆市")
 ##平均每人每日
 ```{r}
 ggplot(data = Taoyuan,aes(x= Taoyuan$統計期, y= Taoyuan$`平均每人每日一般廢棄物產生量 (公斤)`)) +
+  geom_line()+
+  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
+  geom_smooth()+
+  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))
+```
+
+```{r}
+ggplot(data = Tainan,aes(x= Tainan$統計期, y= Tainan$`平均每人每日一般廢棄物產生量 (公斤)`)) +
   geom_line()+
   geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
   geom_smooth()+
