@@ -3,10 +3,12 @@ title: "trash-policy"
 author: "邱奕勳"
 date: "2020/5/14"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r}
-library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm)
+library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(MSCMT)
 
 font_add("QYuan","cwTeXQYuan-Medium.ttf") # 新增字體
 showtext_auto(enable=TRUE) #啟用字體
@@ -14,7 +16,10 @@ theme_set(theme_classic())
 knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.showtext=T)
 ```
 
-#資料處理
+
+
+#Data
+##Trash
 ```{r}
 trash <- read_csv("rawtrash.csv", col_types = cols(序號 = col_skip()), )
 
@@ -42,8 +47,71 @@ trash %>% mutate(
   post = trash$統計期>ymd("2010-12-01"),
   effect = (treat == 1& post == 1)
   ) ->trash
+
+trash <- trash %>% filter(trash$統計區 %in% c("新北市","臺北市","桃園市","臺中市"     ,"臺南市","高雄市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","臺東縣","花蓮縣","澎湖縣","基隆市","新竹市","嘉義市"))
+```
+##family_consumption 
+```{r}
+family_consumption <- read_excel("~/Desktop/平均每戶消費支出.xlsx")
+
+for (i in 1:length(family_consumption$統計期)){
+  as.character(family_consumption$統計期[i]) %>% str_c("-01-01") ->family_consumption$統計期[i]
+}
+ymd(family_consumption$統計期) -> family_consumption$統計期
+as.numeric(family_consumption$平均每戶消費支出) -> family_consumption$平均每戶消費支出
+merge(family_consumption, trash, all = TRUE) ->merged_trash #依據統計期統計區merge
+```
+##disposable_income
+```{r}
+disposable_income <- read_excel("~/Desktop/所得收入者各縣市別平均每人可支配所得.xlsx")
+for (i in 1:length(disposable_income$統計期)){
+  disposable_income$統計期[i] %>% str_c("-01-01") ->disposable_income$統計期[i]
+}
+ymd(disposable_income$統計期)->disposable_income$統計期
+as.numeric(disposable_income$平均每人可支配所得) ->disposable_income$平均每人可支配所得
+merge(disposable_income, merged_trash, all = T)->merged_trash #依據統計期統計區merge
+```
+##unemployment
+```{r}
+unemployment <- read_excel("~/Desktop/unemployment.xlsx",
+col_types = c("date", "text", "numeric"))
+unemployment %>% filter(unemployment$統計區 != "高雄縣") ->unemployment
+merge(unemployment, merged_trash, all = T) ->merged_trash #依據統計期統計區merge
+```
+##numperhousehold
+```{r}
+num_per_household <- read_excel("~/Desktop/平均每戶人數.xlsx",
+col_types = c("numeric", "text", "numeric"))
+num_per_household %>% filter(num_per_household$統計區 %in% unique(merged_trash$統計區)) -> num_per_household
+
+for (i in 1:length(num_per_household$統計期)){
+  num_per_household$統計期[i] %>% str_c("-01-01") ->num_per_household$統計期[i]
+}
+ymd(num_per_household$統計期)->num_per_household$統計期
+merge(num_per_household, merged_trash, all = T) ->merged_trash #依據統計期統計區merge
 ```
 
+```{r}
+merged_trash %>% filter(merged_trash$統計區 != "臺南縣",merged_trash$統計區 !="臺中縣") -> merged_trash
+
+unique(merged_trash$統計區)
+
+as.character(merged_trash$統計期) %>% str_sub(1,7) -> merged_trash$統計期 #符合MSCMT 時間format
+
+merged_trash %>% mutate(regionno = rep(1:20, nrow(merged_trash)/20)) -> merged_trash #unit.variable
+
+merged_trash %>% mutate( regionno = as.integer(factor(merged_trash$統計區)))
+
+```
+
+
+#SCM
+```{r}
+Trash_SCM <- listFromLong(merged_trash, unit.variable="regionno", time.variable="統計期", unit.names.variable = "統計區")
+```
+
+
+#DID
 ```{r}
 #桃園市v新北市
 trash %>% filter(trash$統計區== "新北市"|trash$統計區== "桃園市")-> DIDNtpTao
@@ -157,3 +225,4 @@ ggplot(data = Taipei,aes(x= Taipei$統計期, y= Taipei$`一般垃圾 (公噸)`)
 ```{r}
 newTP$`平均每人每日一般廢棄物產生量 (公斤)`%>%outliers::outlier()
 ```
+
