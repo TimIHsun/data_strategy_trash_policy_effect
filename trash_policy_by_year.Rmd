@@ -1,0 +1,187 @@
+---
+title: "trash_policy_by_year"
+author: "邱奕勳"
+date: "2020/6/10"
+output: html_document
+---
+```{r}
+library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(MSCMT);library(Synth)
+
+font_add("QYuan","cwTeXQYuan-Medium.ttf") # 新增字體
+showtext_auto(enable=TRUE) #啟用字體
+theme_set(theme_classic())
+knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.showtext=T)
+```
+
+```{r}
+trash_raw <- read_csv("trash_raw.csv", col_types = cols(`一般垃圾 (公噸)` = col_skip(),
+`巨大垃圾 (公噸)` = col_skip(),
+序號 = col_skip(), `廚餘 (公噸)` = col_skip(),
+`總計 (公噸)` = col_skip(), `資源垃圾 (公噸)` = col_skip()))
+
+
+
+YearTF <- c()
+
+for (i  in 1:length(trash_raw$統計期)){
+  trash_raw$統計期[i] %>% nchar() <=4 -> TF
+  YearTF %>% append(TF) -> YearTF
+}
+#data
+trash_raw[YearTF,] -> trash_by_year
+
+str_split(trash_by_year$統計期, "年") -> trash_year
+
+for (i in 1:length(trash_year)){
+  as.integer(trash_year[[i]][[1]])+1911 -> trash_by_year$統計期[[i]]
+}
+
+trash_by_year <-trash_by_year %>% filter(trash_by_year$統計區 %in% c("新北市","臺北市","桃園市","臺中市"     ,"臺南市","高雄市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","臺東縣","花蓮縣","澎湖縣","基隆市","新竹市","嘉義市"))
+
+trash_by_year[order(trash_by_year$統計期),] -> trash_by_year
+
+trash_by_year %>% filter(trash_by_year$統計期 <2019) -> trash_by_year
+```
+
+##family_consumption 
+```{r}
+family_consumption <- read_excel("平均每戶消費支出.xlsx")
+
+as.numeric(family_consumption$平均每戶消費支出) -> family_consumption$平均每戶消費支出
+merge(family_consumption, trash_by_year, all = TRUE) ->merged_trash_by_year #依據統計期統計區merge
+```
+##disposable_income
+```{r}
+disposable_income <- read_excel("所得收入者各縣市別平均每人可支配所得.xlsx")
+as.numeric(disposable_income$平均每人可支配所得) ->disposable_income$平均每人可支配所得
+merge(disposable_income, merged_trash_by_year, all = T)->merged_trash_by_year #依據統計期統計區merge
+```
+##unemployment
+```{r}
+unemploy <- read_csv("unemploy.csv")
+
+colnames(unemploy) %>% str_split("_") -> a
+
+unemploy_col <- c()
+for (i in 1:length(a)){
+  unemploy_col %>% append(a[[i]][[1]]) -> unemploy_col
+}
+colnames(unemploy) <- unemploy_col
+
+
+YearTF_un <- c()
+
+for (i  in 1:length(unemploy$項目別)){
+  unemploy$項目別[[i]] %>%  nchar() < 5 -> TF_un
+  YearTF_un %>% append(TF_un) -> YearTF_un
+}
+unemploy[YearTF_un,] -> unemploy
+unemploy %>% filter(unemploy$項目別 %>% as.numeric() >2000 & unemploy$項目別 %>% as.integer() <2019) -> unemploy
+
+for (i in 1:ncol(unemploy)){
+  as.numeric(unemploy[[i]]) -> unemploy[[i]]
+}
+
+write.csv(unemploy,"unemploy_test.csv")
+
+```
+
+```{r}
+unemploy_new <- read_excel("unemploy_new.xlsx")
+merge(unemploy_new, merged_trash_by_year, all = T) ->merged_trash_by_year #依據統計期統計區merge
+```
+
+##numperhousehold
+```{r}
+num_per_household <- read_excel("平均每戶人數.xlsx",
+col_types = c("numeric", "text", "numeric"))
+num_per_household %>% filter(num_per_household$統計區 %in% unique(merged_trash_by_year$統計區)) -> num_per_household
+merge(num_per_household, merged_trash_by_year, all = T) ->merged_trash_by_year #依據統計期統計區merge
+```
+
+
+```{r}
+merged_trash_by_year %>% mutate( regionno = as.integer(factor(merged_trash_by_year$統計區))) -> merged_trash_by_year
+
+merged_trash_by_year[order(merged_trash_by_year$regionno),] -> merged_trash_by_year
+
+write.csv(merged_trash_by_year, "trash_by_year.csv") #2016有重複
+```
+
+#SCM
+```{r}
+# dataprep.out <- dataprep(foo = basque,
+#  predictors = c(“school.illit”, “school.prim”, “school.med”,
+#  “school.high”, “school.post.high”, “invest”),
+#  predictors.op = “mean”, # the operator
+#  time.predictors.prior = 1964:1969, #the entire time frame from the #beginning to the end
+#  special.predictors = list(
+#  list(“gdpcap”, 1960:1969, “mean”),
+#  list(“sec.agriculture”, seq(1961,1969,2),”mean”),
+#  list(“sec.energy”,seq(1961,1969,2),”mean”),
+#  list(“sec.industry”, seq(1961,1969,2),”mean”),
+#  list(“sec.construction”, seq(1961,1969,2),”mean”),
+#  list(“sec.services.venta”, seq(1961,1969,2),”mean”),
+#  list(“sec.services.nonventa”,seq(1961,1969,2),”mean”),
+#  list(“popdens”, 1969, “mean”)),
+#  dependent = “gdpcap”, # dv
+#  unit.variable = “regionno”,#identifying unit numbers
+#  unit.names.variable = “regionname”,#identifying unit names
+#  time.variable = “year”,#time-periods
+#  treatment.identifier = 17,#the treated case
+#  controls.identifier = c(2:16, 18),#the control cases; all others #except number 17
+#  time.optimize.ssr = 1960:1969,#the time-period over which to optimize
+#  time.plot = 1955:1997)#the entire time period before/after the treatment
+# dataprep.out obtains f
+```
+
+```{r}
+trash_by_year <- read_excel("trash_by_year.xlsx")
+trash_by_year$regionno %>% as.numeric() -> trash_by_year$regionno
+```
+
+```{r}
+trash_by_year %>% as.data.frame() -> trash_by_year #需要是dataframe  形式
+```
+
+
+```{r}
+trashprep.out <- dataprep(
+  foo= trash_by_year,
+  predictors = c("平均每戶消費支出","失業率","平均每戶人數","平均每人可支配所得","平均每人每日一般廢棄物產生量 (公斤)"),
+  predictors.op = "mean",
+  time.predictors.prior = 2001:2010,
+  dependent = "平均每人每日一般廢棄物產生量 (公斤)",
+  unit.variable = "regionno",
+  unit.names.variable = "統計區",
+  time.variable = "統計期",
+  treatment.identifier = 15,
+  controls.identifier = c(1:14,16:20),
+  time.optimize.ssr = 2001:2010,
+  time.plot = 2001:2018
+)
+```
+
+```{r}
+synth.out = synth(data.prep.obj = trashprep.out, method = "BFGS")
+```
+```{r}
+trashprep.out$X1
+trashprep.out$X0
+```
+
+```{r}
+synth.tables = synth.tab(dataprep.res = trashprep.out,
+                         synth.res = synth.out)
+```
+
+```{r}
+synth.tables$tab.w
+```
+
+```{r}
+gaps = trashprep.out$Y1plot - (trashprep.out$Y0plot 
+                                     %*% synth.out$solution.w)
+gaps
+```
+

@@ -23,6 +23,8 @@ knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.show
 ```{r}
 trash <- read_csv("rawtrash.csv", col_types = cols(序號 = col_skip()), )
 
+trash %>% select("統計期","統計區","平均每人每日一般廢棄物產生量 (公斤)") -> trash
+
 #處理時間
 trash$統計期 %>% str_replace_all(c("年"="-","月"="-01")) -> trash$統計期
 str_split(trash$統計期, "-") -> trashYearMonth
@@ -37,16 +39,16 @@ trash$統計期 <- trashYearMonth %>% ymd()
 #清除na, na為年資料
 trash %>% na.omit() ->trash
 trash[order(trash$統計期),] -> trash
-
-trash %>% mutate(ratio = trash$`一般垃圾 (公噸)`/trash$`資源垃圾 (公噸)`) -> trash
-
-# treatment; post
-
-trash %>% mutate(
-  treat = trash$統計區 == "新北市", 
-  post = trash$統計期>ymd("2010-12-01"),
-  effect = (treat == 1& post == 1)
-  ) ->trash
+#DID
+# trash %>% mutate(ratio = trash$`一般垃圾 (公噸)`/trash$`資源垃圾 (公噸)`) -> trash
+# 
+# # treatment; post
+# 
+# trash %>% mutate(
+#   treat = trash$統計區 == "新北市", 
+#   post = trash$統計期>ymd("2010-12-01"),
+#   effect = (treat == 1& post == 1)
+#   ) ->trash
 
 trash <- trash %>% filter(trash$統計區 %in% c("新北市","臺北市","桃園市","臺中市"     ,"臺南市","高雄市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","臺東縣","花蓮縣","澎湖縣","基隆市","新竹市","嘉義市"))
 ```
@@ -98,16 +100,19 @@ unique(merged_trash$統計區)
 
 as.character(merged_trash$統計期) %>% str_sub(1,7) -> merged_trash$統計期 #符合MSCMT 時間format
 
-merged_trash %>% mutate(regionno = rep(1:20, nrow(merged_trash)/20)) -> merged_trash #unit.variable
 
-merged_trash %>% mutate( regionno = as.integer(factor(merged_trash$統計區)))
+merged_trash %>% mutate( regionno = as.integer(factor(merged_trash$統計區)))-> merged_trash#unit.variable
 
+merged_trash[order(merged_trash$regionno),] ->merged_trash
 ```
 
 
 #SCM
 ```{r}
 Trash_SCM <- listFromLong(merged_trash, unit.variable="regionno", time.variable="統計期", unit.names.variable = "統計區")
+
+names(Trash_SCM)
+head(Trash_SCM$`平均每人每日一般廢棄物產生量 (公斤)`)
 ```
 
 
