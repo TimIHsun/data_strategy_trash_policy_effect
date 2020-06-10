@@ -44,17 +44,17 @@ trash[order(trash$統計期),] -> trash
 # 
 # # treatment; post
 # 
-# trash %>% mutate(
-#   treat = trash$統計區 == "新北市", 
-#   post = trash$統計期>ymd("2010-12-01"),
-#   effect = (treat == 1& post == 1)
-#   ) ->trash
+ trash %>% mutate(
+   treat = trash$統計區 == "新北市", 
+   post = trash$統計期>ymd("2010-12-01"),
+   effect = (treat == 1& post == 1)
+   ) ->trash
 
 trash <- trash %>% filter(trash$統計區 %in% c("新北市","臺北市","桃園市","臺中市"     ,"臺南市","高雄市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","臺東縣","花蓮縣","澎湖縣","基隆市","新竹市","嘉義市"))
 ```
 ##family_consumption 
 ```{r}
-family_consumption <- read_excel("~/Desktop/平均每戶消費支出.xlsx")
+family_consumption <- read_excel("平均每戶消費支出.xlsx")
 
 for (i in 1:length(family_consumption$統計期)){
   as.character(family_consumption$統計期[i]) %>% str_c("-01-01") ->family_consumption$統計期[i]
@@ -65,7 +65,7 @@ merge(family_consumption, trash, all = TRUE) ->merged_trash #依據統計期統�
 ```
 ##disposable_income
 ```{r}
-disposable_income <- read_excel("~/Desktop/所得收入者各縣市別平均每人可支配所得.xlsx")
+disposable_income <- read_excel("所得收入者各縣市別平均每人可支配所得.xlsx")
 for (i in 1:length(disposable_income$統計期)){
   disposable_income$統計期[i] %>% str_c("-01-01") ->disposable_income$統計期[i]
 }
@@ -75,14 +75,14 @@ merge(disposable_income, merged_trash, all = T)->merged_trash #依據統計期�
 ```
 ##unemployment
 ```{r}
-unemployment <- read_excel("~/Desktop/unemployment.xlsx",
+unemployment <- read_excel("unemployment.xlsx",
 col_types = c("date", "text", "numeric"))
 unemployment %>% filter(unemployment$統計區 != "高雄縣") ->unemployment
 merge(unemployment, merged_trash, all = T) ->merged_trash #依據統計期統計區merge
 ```
 ##numperhousehold
 ```{r}
-num_per_household <- read_excel("~/Desktop/平均每戶人數.xlsx",
+num_per_household <- read_excel("平均每戶人數.xlsx",
 col_types = c("numeric", "text", "numeric"))
 num_per_household %>% filter(num_per_household$統計區 %in% unique(merged_trash$統計區)) -> num_per_household
 
@@ -107,15 +107,34 @@ merged_trash[order(merged_trash$regionno),] ->merged_trash
 ```
 
 
-#SCM
+#MSCMT
 ```{r}
 Trash_SCM <- listFromLong(merged_trash, unit.variable="regionno", time.variable="統計期", unit.names.variable = "統計區")
 
 names(Trash_SCM)
 head(Trash_SCM$`平均每人每日一般廢棄物產生量 (公斤)`)
 ```
+```{r}
+treatment.identifier <- "新北市"
+controls.identifier <- setdiff(colnames(Trash_SCM[[1]]), treatment.identifier)
+times.dep <- cbind("平均每人每日一般廢棄物產生量 (公斤)", c("2001-01","2010-12")) #dependant var
+
+times.pred <- cbind( #predictor var
+  "平均每戶消費支出" = c("2001-01","2010-12"),
+  "失業率" = c("2001-01","2010-12"),
+  "平均每戶人數"= c("2001-01","2010-12"),
+  "平均每人可支配所得" = c("2001-01","2010-12"),
+  "平均每人每日一般廢棄物產生量 (公斤)"=c("2001-01","2010-12")
+)
+```
 
 
+
+```{r}
+# res <- mscmt(Trash_SCM, treatment.identifier, controls.identifier, times.dep, times.pred, seed=1)
+```
+ 
+ 
 #DID
 ```{r}
 #桃園市v新北市
@@ -187,6 +206,7 @@ SD[[1]] %>% which.min()
 rbind(SD[[1]], rank(SD[[1]])) %>% as.data.frame()-> perdayperpersonSD
 rownames(perdayperpersonSD) <- c("新北市","排序")
 
+perdayperpersonSD %>% t()
 ```
 
 #平均每人每日
@@ -205,7 +225,9 @@ ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每�
   geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
   geom_smooth()+
   geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
-  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`)) -> Changhua_NTP
+
+ggsave(Changhua_NTP, "DIDplot.png")
 ```
 
 #一般垃圾

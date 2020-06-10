@@ -82,7 +82,6 @@ for (i in 1:ncol(unemploy)){
   as.numeric(unemploy[[i]]) -> unemploy[[i]]
 }
 
-write.csv(unemploy,"unemploy_test.csv")
 
 ```
 
@@ -105,7 +104,7 @@ merged_trash_by_year %>% mutate( regionno = as.integer(factor(merged_trash_by_ye
 
 merged_trash_by_year[order(merged_trash_by_year$regionno),] -> merged_trash_by_year
 
-write.csv(merged_trash_by_year, "trash_by_year.csv") #2016有重複
+write.csv(merged_trash_by_year, "trash_by_year.csv") #2016有重複(error: unbalanced data)
 ```
 
 #SCM
@@ -163,8 +162,9 @@ trashprep.out <- dataprep(
 ```
 
 ```{r}
-synth.out = synth(data.prep.obj = trashprep.out, method = "BFGS")
+synth.out = synth(data.prep.obj = trashprep.out)
 ```
+
 ```{r}
 trashprep.out$X1
 trashprep.out$X0
@@ -176,12 +176,24 @@ synth.tables = synth.tab(dataprep.res = trashprep.out,
 ```
 
 ```{r}
-synth.tables$tab.w
+synth.tables$tab.w -> weights_city
 ```
 
 ```{r}
-gaps = trashprep.out$Y1plot - (trashprep.out$Y0plot 
-                                     %*% synth.out$solution.w)
-gaps
+gaps = trashprep.out$Y1plot - (trashprep.out$Y0plot %*% synth.out$solution.w)
+gaps 
+```
+```{r}
+gaps[11:18] %>% mean() #mean effect
+```
+
+
+```{r}
+synth.tables$tab.pred -> characterisrics
+```
+
+```{r}
+path.plot(synth.res = synth.out, dataprep.res = trashprep.out,
+          Ylab = "平均每人每日一般廢棄物產生量 (公斤)") -> SCM_plot
 ```
 
