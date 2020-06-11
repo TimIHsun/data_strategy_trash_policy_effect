@@ -162,6 +162,7 @@ summary(ols_ntp_chang)
 trash %>% filter((trash$統計區== "新北市"|trash$統計區== "彰化縣")&trash$統計期<ymd("2017-01-01"))-> DIDNtpChang2
 ols_ntp_chang_2<-lm(DIDNtpChang2$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang2)
 summary(ols_ntp_chang_2)
+stargazer::stargazer(ols_ntp_chang_2)
 ```
 
 ```{r}
@@ -227,7 +228,7 @@ ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每�
   geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
   geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`)) -> Changhua_NTP
 
-ggsave(Changhua_NTP, "DIDplot.png")
+ggsave("Changhua_NTP.png", width = 5, height = 3)
 ```
 
 #一般垃圾

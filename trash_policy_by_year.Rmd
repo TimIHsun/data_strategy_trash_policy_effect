@@ -171,8 +171,10 @@ trashprep.out$X0
 ```
 
 ```{r}
-synth.tables = synth.tab(dataprep.res = trashprep.out,
-                         synth.res = synth.out)
+synth.tables = synth.tab(
+  dataprep.res = trashprep.out,
+  synth.res = synth.out
+  )
 ```
 
 ```{r}
@@ -183,6 +185,33 @@ synth.tables$tab.w -> weights_city
 gaps = trashprep.out$Y1plot - (trashprep.out$Y0plot %*% synth.out$solution.w)
 gaps 
 ```
+
+```{r}
+(trashprep.out$Y0plot %*% synth.out$solution.w) -> synthetic_ntp
+trashprep.out$Y1plot -> ntp_outcome
+cbind( 2001:2018,synthetic_ntp, ntp_outcome) %>% as.data.frame() -> synntp_ntp
+colnames(synntp_ntp) <- c("year","synthetic", "NTP")
+```
+
+```{r}
+gaps[1:10] %>% sd()
+```
+
+
+```{r}
+synthntp_ntp <- read_excel("synthntp_ntp.xlsx")
+synthntp_ntp %>% mutate(
+   treat = 統計區 == "NTP", 
+   post  = 統計期>2010,
+   effect = (treat == 1& post == 1)
+) ->synthntp_ntp_lmdata
+
+lm(DIDNtpChang2$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang2)
+
+lm(synthntp_ntp_lmdata$每人每日 ~ treat+post+effect, data = synthntp_ntp_lmdata)-> syntheticlm
+summary(syntheticlm)
+```
+
 ```{r}
 gaps[11:18] %>% mean() #mean effect
 ```
