@@ -89,7 +89,7 @@ trash %>% filter(trash$統計區== "彰化縣"|trash$統計區== "新北市")-> 
 
 ols_ntp_chang<-lm(DIDNtpChang$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang)
 summary(ols_ntp_chang)
-
+stargazer(ols_ntp_chang, type = "text")
 
 ```
 
@@ -101,12 +101,17 @@ summary(ols_ntp_chang)
 ```{r}
 ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每日一般廢棄物產生量 (公斤)`)) +
   geom_line()+
-  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
+  geom_vline(xintercept = ymd("2010-01-01"), alpha= 0.7, linetype="longdash")+
+  labs(x="統計期(年月)", y="平均每人每日")+
   geom_smooth()+
   geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
   geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))+
   annotate("text", label = "彰化縣", x= ymd("2018-01-01"), y= 2.3)+
-  annotate("text", label = "新北市", x= ymd("2019-10-01"), y= 2, color = "red")-> Changhua_NTP
+  annotate("text", label = "新北市", x= ymd("2019-10-01"), y= 2, color = "red")+
+  scale_x_date(
+      breaks = c(as.Date("2001-01-01"),seq(as.Date("2005-01-01"), as.Date("2019-12-01"), by="5 year"),as.Date("2019-12-01")),
+      labels = c("2001-01", "2005-01", "2010-01", "2015-01", "2019-01")
+      )->Changhua_NTP
 ggsave("Changhua_NTP.png", width = 5, height = 3)
 Changhua_NTP
 ```

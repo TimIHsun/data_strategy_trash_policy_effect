@@ -5,7 +5,7 @@ date: "2020/6/10"
 output: html_document
 ---
 ```{r}
-library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(MSCMT);library(Synth);library(reshape2)
+library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(Synth);library(reshape2);library(stargazer)
 
 font_add("QYuan","cwTeXQYuan-Medium.ttf") # 新增字體
 showtext_auto(enable=TRUE) #啟用字體
@@ -180,11 +180,24 @@ synntp_ntp %>% mutate(
 
 lm(synntp_ntp$每人每日 ~ treat+post+effect, data = synntp_ntp)-> syntheticlm
 summary(syntheticlm)
+stargazer(syntheticlm, ols_ntp_chang,type = "text")
 ```
 
 
+
 ```{r}
-path.plot(synth.res = synth.out, dataprep.res = trashprep.out,
-          Ylab = "平均每人每日一般廢棄物產生量 (公斤)") -> SCM_plot
+ggplot(data=synntp_ntp ,aes(x=synntp_ntp$統計期,y=synntp_ntp$每人每日, 
+  color=synntp_ntp$統計區))+
+  geom_vline(xintercept = 2010, alpha = 0.7, linetype = "longdash")+
+  geom_line()+
+  scale_color_manual(values = c("black", "red"))+
+  theme(legend.position = "NULL")+
+  annotate("text", label = "合成新北市", x= 2016, y= 1.2)+
+  annotate("text", label = "新北市", x= 2016, y= 0.8, color = "red")+
+  labs(x="統計期(年)", y="平均每人每日一般廢棄物產生量 (公斤)")+
+  scale_x_continuous(breaks = c(2001,seq(2005,2015, by=5),2018))->Synntp_ntp_graph
+ggsave("Synntp_ntp_graph.png", width = 5, height = 3)
+Synntp_ntp_graph
+
 ```
 
