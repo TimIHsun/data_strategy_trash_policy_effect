@@ -15,7 +15,7 @@ knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.show
 #data
 ##每人每日
 ```{r}
-trash_raw <- read_csv("trash_raw.csv", col_types = cols(`一般垃圾 (公噸)` = col_skip(),
+trash_raw <- read_csv("rawtrash.csv", col_types = cols(`一般垃圾 (公噸)` = col_skip(),
 `巨大垃圾 (公噸)` = col_skip(),
 序號 = col_skip(), `廚餘 (公噸)` = col_skip(),
 `總計 (公噸)` = col_skip(), `資源垃圾 (公噸)` = col_skip()))
@@ -177,7 +177,6 @@ synntp_ntp %>% mutate(
    effect = (treat == 1& post == 1)
 ) ->synntp_ntp
 
-lm(DIDNtpChang2$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang2)
 
 lm(synntp_ntp$每人每日 ~ treat+post+effect, data = synntp_ntp)-> syntheticlm
 summary(syntheticlm)
