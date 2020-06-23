@@ -21,7 +21,7 @@ knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.show
 #Data
 ##Trash
 ```{r}
-trash <- read_csv("rawtrash.csv", col_types = cols(序號 = col_skip()), )
+trash <- read_csv("data/rawtrash.csv", col_types = cols(序號 = col_skip()), )
 
 trash %>% select("統計期","統計區","平均每人每日一般廢棄物產生量 (公斤)") -> trash
 

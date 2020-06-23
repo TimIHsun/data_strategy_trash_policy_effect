@@ -15,7 +15,7 @@ knitr::opts_chunk$set(out.width='80%', fig.asp=.75, fig.align='center', fig.show
 #data
 ##每人每日
 ```{r}
-trash_raw <- read_csv("rawtrash.csv", col_types = cols(`一般垃圾 (公噸)` = col_skip(),
+trash_raw <- read_csv("data/rawtrash.csv", col_types = cols(`一般垃圾 (公噸)` = col_skip(),
 `巨大垃圾 (公噸)` = col_skip(),
 序號 = col_skip(), `廚餘 (公噸)` = col_skip(),
 `總計 (公噸)` = col_skip(), `資源垃圾 (公噸)` = col_skip()))
@@ -46,20 +46,20 @@ trash_by_year %>% filter(trash_by_year$統計期 <2019) -> trash_by_year
 
 ##family_consumption 
 ```{r}
-family_consumption <- read_excel("平均每戶消費支出.xlsx")
+family_consumption <- read_excel("data/平均每戶消費支出.xlsx")
 
 as.numeric(family_consumption$平均每戶消費支出) -> family_consumption$平均每戶消費支出
 merge(family_consumption, trash_by_year, all = TRUE) ->merged_trash_by_year #依據統計期統計區merge
 ```
 ##disposable_income
 ```{r}
-disposable_income <- read_excel("所得收入者各縣市別平均每人可支配所得.xlsx")
+disposable_income <- read_excel("data/所得收入者各縣市別平均每人可支配所得.xlsx")
 as.numeric(disposable_income$平均每人可支配所得) ->disposable_income$平均每人可支配所得
 merge(disposable_income, merged_trash_by_year, all = T)->merged_trash_by_year #依據統計期統計區merge
 ```
 ##unemployment
 ```{r}
-unemploy <- read_csv("unemploy.csv")
+unemploy <- read_csv("data/unemploy.csv")
 
 #整理colnames
 colnames(unemploy) %>% str_split("_") -> a
@@ -94,7 +94,7 @@ merge(unemploy, merged_trash_by_year, all = T) ->merged_trash_by_year
 
 ##numperhousehold
 ```{r}
-num_per_household <- read_excel("平均每戶人數.xlsx",
+num_per_household <- read_excel("data/平均每戶人數.xlsx",
 col_types = c("numeric", "text", "numeric"))
 num_per_household %>% filter(num_per_household$統計區 %in% unique(merged_trash_by_year$統計區)) -> num_per_household
 merge(num_per_household, merged_trash_by_year, all = T) ->merged_trash_by_year #依據統計期統計區merge
