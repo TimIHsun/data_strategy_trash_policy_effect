@@ -7,7 +7,7 @@
 
 <img src="Changhua_NTP.png"></img>
 
-
+<img src="https://render.githubusercontent.com/render/math?math=Y_{1t}^{N}">
 $Y_{1t}^{N}$
 $Y_{1t}^{T}$
 $$\alpha_{1t}= Y_{1t}^{I} - Y_{1t}^{N}$$
