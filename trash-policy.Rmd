@@ -39,11 +39,8 @@ trash$統計期 <- trashYearMonth %>% ymd()
 #清除na, na為年資料
 trash %>% na.omit() ->trash
 trash[order(trash$統計期),] -> trash
-#DID
-# trash %>% mutate(ratio = trash$`一般垃圾 (公噸)`/trash$`資源垃圾 (公噸)`) -> trash
-# 
-# # treatment; post
-# 
+
+# treatment; post
  trash %>% mutate(
    treat = trash$統計區 == "新北市", 
    post = trash$統計期>ymd("2010-12-01"),
@@ -52,146 +49,19 @@ trash[order(trash$統計期),] -> trash
 
 trash <- trash %>% filter(trash$統計區 %in% c("新北市","臺北市","桃園市","臺中市"     ,"臺南市","高雄市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","臺東縣","花蓮縣","澎湖縣","基隆市","新竹市","嘉義市"))
 ```
-##family_consumption 
-```{r}
-family_consumption <- read_excel("平均每戶消費支出.xlsx")
-
-for (i in 1:length(family_consumption$統計期)){
-  as.character(family_consumption$統計期[i]) %>% str_c("-01-01") ->family_consumption$統計期[i]
-}
-ymd(family_consumption$統計期) -> family_consumption$統計期
-as.numeric(family_consumption$平均每戶消費支出) -> family_consumption$平均每戶消費支出
-merge(family_consumption, trash, all = TRUE) ->merged_trash #依據統計期統計區merge
-```
-##disposable_income
-```{r}
-disposable_income <- read_excel("所得收入者各縣市別平均每人可支配所得.xlsx")
-for (i in 1:length(disposable_income$統計期)){
-  disposable_income$統計期[i] %>% str_c("-01-01") ->disposable_income$統計期[i]
-}
-ymd(disposable_income$統計期)->disposable_income$統計期
-as.numeric(disposable_income$平均每人可支配所得) ->disposable_income$平均每人可支配所得
-merge(disposable_income, merged_trash, all = T)->merged_trash #依據統計期統計區merge
-```
-##unemployment
-```{r}
-unemployment <- read_excel("unemployment.xlsx",
-col_types = c("date", "text", "numeric"))
-unemployment %>% filter(unemployment$統計區 != "高雄縣") ->unemployment
-merge(unemployment, merged_trash, all = T) ->merged_trash #依據統計期統計區merge
-```
-##numperhousehold
-```{r}
-num_per_household <- read_excel("平均每戶人數.xlsx",
-col_types = c("numeric", "text", "numeric"))
-num_per_household %>% filter(num_per_household$統計區 %in% unique(merged_trash$統計區)) -> num_per_household
-
-for (i in 1:length(num_per_household$統計期)){
-  num_per_household$統計期[i] %>% str_c("-01-01") ->num_per_household$統計期[i]
-}
-ymd(num_per_household$統計期)->num_per_household$統計期
-merge(num_per_household, merged_trash, all = T) ->merged_trash #依據統計期統計區merge
-```
-
-```{r}
-merged_trash %>% filter(merged_trash$統計區 != "臺南縣",merged_trash$統計區 !="臺中縣") -> merged_trash
-
-unique(merged_trash$統計區)
-
-as.character(merged_trash$統計期) %>% str_sub(1,7) -> merged_trash$統計期 #符合MSCMT 時間format
-
-
-merged_trash %>% mutate( regionno = as.integer(factor(merged_trash$統計區)))-> merged_trash#unit.variable
-
-merged_trash[order(merged_trash$regionno),] ->merged_trash
-```
-
-
-#MSCMT
-```{r}
-Trash_SCM <- listFromLong(merged_trash, unit.variable="regionno", time.variable="統計期", unit.names.variable = "統計區")
-
-names(Trash_SCM)
-head(Trash_SCM$`平均每人每日一般廢棄物產生量 (公斤)`)
-```
-```{r}
-treatment.identifier <- "新北市"
-controls.identifier <- setdiff(colnames(Trash_SCM[[1]]), treatment.identifier)
-times.dep <- cbind("平均每人每日一般廢棄物產生量 (公斤)", c("2001-01","2010-12")) #dependant var
-
-times.pred <- cbind( #predictor var
-  "平均每戶消費支出" = c("2001-01","2010-12"),
-  "失業率" = c("2001-01","2010-12"),
-  "平均每戶人數"= c("2001-01","2010-12"),
-  "平均每人可支配所得" = c("2001-01","2010-12"),
-  "平均每人每日一般廢棄物產生量 (公斤)"=c("2001-01","2010-12")
-)
-```
-
-
-
-```{r}
-# res <- mscmt(Trash_SCM, treatment.identifier, controls.identifier, times.dep, times.pred, seed=1)
-```
- 
- 
-#DID
-```{r}
-#桃園市v新北市
-trash %>% filter(trash$統計區== "新北市"|trash$統計區== "桃園市")-> DIDNtpTao
-
-ols<-lm(DIDNtpTao$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpTao)
-summary(ols)
-
-
-##2017以前
-trash %>% filter((trash$統計區== "新北市"|trash$統計區== "桃園市")&trash$統計期<ymd("2017-01-01"))-> DIDNtpTao2
-ols2<-lm(DIDNtpTao2$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpTao2)
-summary(ols2)
-```
-
-```{r}
-#彰化縣v新北市
-trash %>% filter(trash$統計區== "彰化縣"|trash$統計區== "新北市")-> DIDNtpChang
-
-ols_ntp_chang<-lm(DIDNtpChang$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang)
-summary(ols_ntp_chang)
-
-
-##2017以前
-trash %>% filter((trash$統計區== "新北市"|trash$統計區== "彰化縣")&trash$統計期<ymd("2017-01-01"))-> DIDNtpChang2
-ols_ntp_chang_2<-lm(DIDNtpChang2$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang2)
-summary(ols_ntp_chang_2)
-stargazer::stargazer(ols_ntp_chang_2)
-```
 
 ```{r}
 newTP <- trash %>% filter(trash$統計區 == "新北市") 
 #按照日期排序
-
-Taoyuan <- trash %>% filter(trash$統計區 == "桃園市")
-
-Taipei <- trash %>% filter(trash$統計區 == "臺北市")
-
-Keelung <- trash %>% filter(trash$統計區 == "基隆市")
-
-TaichungO <- trash %>% filter(trash$統計區 == "臺中市(舊)")
-
-Taichung <- trash %>% filter(trash$統計區 == "臺中市")
-
-TainanO <- trash %>% filter(trash$統計區 == "臺南市(舊)")
-
-Tainan <- trash %>% filter(trash$統計區 == "臺南市")
-
-Changhua <- trash %>% filter(trash$統計區 == "彰化縣")
 ```
+
 
 #Diff Standard Error
 ```{r}
 trash %>% filter(trash$統計期<ymd("2010-12-01")) ->trashBefore
 
 
-unique(trashBefore$統計區)[c(2:4,6:7,9:10,12:28)] -> city
+unique(trashBefore$統計區)[c(2:length(unique(trashBefore$統計區)))] -> city
 
 list(c(1:length(city)))-> SD
 names(SD[[1]]) <- city
@@ -202,23 +72,31 @@ for (i in city){
   
 }
 
-
-SD[[1]] %>% which.min()
 rbind(SD[[1]], rank(SD[[1]])) %>% as.data.frame()-> perdayperpersonSD
 rownames(perdayperpersonSD) <- c("新北市","排序")
-
+SD[[1]] %>% which.min()
 perdayperpersonSD %>% t()
 ```
+```{r}
+Changhua <- trash %>% filter(trash$統計區 == "彰化縣")
+```
+ 
+#DID
+
+```{r}
+#彰化縣v新北市
+trash %>% filter(trash$統計區== "彰化縣"|trash$統計區== "新北市")-> DIDNtpChang
+
+ols_ntp_chang<-lm(DIDNtpChang$`平均每人每日一般廢棄物產生量 (公斤)`~ treat+post+effect, data = DIDNtpChang)
+summary(ols_ntp_chang)
+
+
+```
+
+
+
 
 #平均每人每日
-```{r}
-ggplot(data = Taoyuan,aes(x= Taoyuan$統計期, y= Taoyuan$`平均每人每日一般廢棄物產生量 (公斤)`)) +
-  geom_line()+
-  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
-  geom_smooth()+
-  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
-  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))
-```
 
 ```{r}
 ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每日一般廢棄物產生量 (公斤)`)) +
@@ -226,31 +104,10 @@ ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每�
   geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="平均每人每日")+
   geom_smooth()+
   geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`), color = "red")+
-  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`)) -> Changhua_NTP
-
+  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))+
+  annotate("text", label = "彰化縣", x= ymd("2018-01-01"), y= 2.3)+
+  annotate("text", label = "新北市", x= ymd("2019-10-01"), y= 2, color = "red")-> Changhua_NTP
 ggsave("Changhua_NTP.png", width = 5, height = 3)
-```
-
-#一般垃圾
-```{r}
-ggplot(data = Taoyuan,aes(x= Taoyuan$統計期, y= Taoyuan$`一般垃圾 (公噸)`)) +
-  geom_line()+
-  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="一般垃圾")+
-  geom_smooth()+
-  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`), color = "red")+
-  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`))
-```
-
-```{r}
-ggplot(data = Taipei,aes(x= Taipei$統計期, y= Taipei$`一般垃圾 (公噸)`)) +
-  geom_line()+
-  geom_vline(xintercept = ymd("2010-01-01"))+labs(x="統計期(年月)", y="一般垃圾")+
-  geom_smooth()+
-  geom_line(data = newTP ,aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`), color = "red")+
-  geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`一般垃圾 (公噸)`))
-```
-
-```{r}
-newTP$`平均每人每日一般廢棄物產生量 (公斤)`%>%outliers::outlier()
+Changhua_NTP
 ```
 
