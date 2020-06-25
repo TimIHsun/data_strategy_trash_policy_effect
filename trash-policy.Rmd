@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r}
-library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(MSCMT)
+library(dplyr); library(stringr); library(ggplot2); library(plotly); library(lubridate); library(readr); library(tidyr); library(showtext); library(plm);library(readxl);library(MSCMT);library(stargazer)
 
 font_add("QYuan","cwTeXQYuan-Medium.ttf") # 新增字體
 showtext_auto(enable=TRUE) #啟用字體
@@ -61,11 +61,11 @@ newTP <- trash %>% filter(trash$統計區 == "新北市")
 trash %>% filter(trash$統計期<ymd("2010-12-01")) ->trashBefore
 
 
-unique(trashBefore$統計區)[c(2:length(unique(trashBefore$統計區)))] -> city
-
+unique(trashBefore$統計區)[unique(trashBefore$統計區)!="新北市"] -> city
 list(c(1:length(city)))-> SD
 names(SD[[1]]) <- city
 
+#計算標準差
 for (i in city){
   trashBefore %>% filter(trashBefore$統計區==i) -> control
   sd(control$`平均每人每日一般廢棄物產生量 (公斤)`- newTP$`平均每人每日一般廢棄物產生量 (公斤)`)->SD[[1]][[i]]
@@ -108,10 +108,11 @@ ggplot(data = Changhua,aes(x= Changhua$統計期, y= Changhua$`平均每人每�
   geom_smooth(data = newTP, aes(x= newTP$統計期, y= newTP$`平均每人每日一般廢棄物產生量 (公斤)`))+
   annotate("text", label = "彰化縣", x= ymd("2018-01-01"), y= 2.3)+
   annotate("text", label = "新北市", x= ymd("2019-10-01"), y= 2, color = "red")+
+  annotate("text", label = "2008-01", x= ymd("2008-01-01"), y= 0.5, alpha = 0.8, size=3)+
   scale_x_date(
-      breaks = c(as.Date("2001-01-01"),seq(as.Date("2005-01-01"), as.Date("2019-12-01"), by="5 year"),as.Date("2019-12-01")),
-      labels = c("2001-01", "2005-01", "2010-01", "2015-01", "2019-01")
-      )->Changhua_NTP
+      breaks = c(as.Date("2001-01-01"),as.Date("2008-01-01"),seq(as.Date("2005-01-01"), as.Date("2019-12-01"), by="5 year"),as.Date("2019-12-01")),
+      labels = c("2001-01","","2005-01", "2010-01", "2015-01", "2019-01")) -> Changhua_NTP
+
 ggsave("Changhua_NTP.png", width = 5, height = 3)
 Changhua_NTP
 ```
